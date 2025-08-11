@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Why Like Charges Repel and Opposites Attract — Interactive Preview</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a33;
+      --panel-2: #0f1530;
+      --text: #e6eefc;
+      --muted: #a7b4d6;
+      --accent: #7aa2ff;
+      --good: #3bd671;
+      --bad: #ff5f6d;
+      --grid: #1d2a4d;
+      --axis: #2a3a69;
+      --arrow: #ffd166;
+      --charge-pos: #ff4d67;
+      --charge-neg: #2bdfff;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 20% 0%, #101a3a 0%, var(--bg) 45%) fixed;
+      color: var(--text);
+      font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.2px;
+      font-weight: 650;
+    }
+
+    .controls {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid #203058;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .controls label { color: var(--muted); font-weight: 600; }
+    .controls .group { display: flex; align-items: center; gap: 8px; }
+    .controls input[type="range"] { width: 160px; }
+
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      background: #0f1a38;
+      border: 1px solid #22345e;
+      padding: 6px;
+      border-radius: 999px;
+    }
+    .pill button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 650;
+    }
+    .pill button.active { background: #1a2a59; color: #eaf0ff; box-shadow: inset 0 0 0 1px #354e91; }
+
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid #203058;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+
+    .stage {
+      aspect-ratio: 16 / 9;
+      position: relative;
+    }
+
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+      padding: 12px 14px 14px 14px;
+      border-top: 1px solid #203058;
+      background: #0c132b;
+    }
+
+    .legend .stat { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; }
+    .legend .label { color: var(--muted); }
+    .legend .value { font-variant-numeric: tabular-nums; font-weight: 650; }
+    .value.positive { color: var(--bad); }
+    .value.negative { color: var(--good); }
+
+    .explain {
+      padding: 12px 14px;
+      color: #d7e3ff;
+      border-top: 1px solid #203058;
+      background: #0c132b;
+    }
+
+    .explain .eq { color: #b9c8f0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+    .plot { aspect-ratio: 16 / 5; }
+
+    .tip { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Why like charges repel and opposite charges attract</h1>
+      <div class="controls">
+        <div class="group">
+          <label>Charges</label>
+          <span class="pill" id="chargeMode">
+            <button data-mode="like" class="active">Like (+/+)</button>
+            <button data-mode="opposite">Opposite (+/−)</button>
+          </span>
+        </div>
+        <div class="group">
+          <label>|q|</label>
+          <input id="magnitude" type="range" min="1" max="50" value="12" />
+          <span id="magReadout" class="value">12 nC</span>
+        </div>
+        <div class="group tip">Drag the charges. Arrows show force direction.</div>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="stage">
+        <canvas id="scene"></canvas>
+      </div>
+      <div class="legend">
+        <div class="stat"><div class="label">q₁</div><div id="q1Readout" class="value">+12 nC</div></div>
+        <div class="stat"><div class="label">q₂</div><div id="q2Readout" class="value">+12 nC</div></div>
+        <div class="stat"><div class="label">Separation r</div><div id="rReadout" class="value">—</div></div>
+        <div class="stat"><div class="label">Potential energy U = k q₁ q₂ / r</div><div id="uReadout" class="value">—</div></div>
+        <div class="stat"><div class="label">Radial force magnitude |F| = k |q₁ q₂| / r²</div><div id="fReadout" class="value">—</div></div>
+        <div class="stat"><div class="label">Sign(q₁q₂)</div><div id="signReadout" class="value">+ (repel)</div></div>
+      </div>
+      <div class="explain" id="explain">
+        <div style="margin-bottom: 6px; font-weight: 650;">Energy view:</div>
+        <div>
+          The potential energy is <span class="eq">U(r) = k q₁ q₂ / r</span>. Force points in the direction of decreasing energy: <span class="eq">F(r) = − dU/dr</span>.
+          If <span class="eq">q₁q₂ &gt; 0</span>, then <span class="eq">U &gt; 0</span> and the system lowers energy by increasing <span class="eq">r</span> ➜ repulsion. If <span class="eq">q₁q₂ &lt; 0</span>, then <span class="eq">U &lt; 0</span> and energy decreases as <span class="eq">r</span> shrinks ➜ attraction.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="plot">
+        <canvas id="plot"></canvas>
+      </div>
+      <div class="explain">
+        The curve shows <span class="eq">U(r) ∝ 1/r</span> for the current charge signs. The marker indicates the current separation.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const kCoulomb = 8.9875517923e9; // N m^2 / C^2
+    const metersPerPixel = 0.01; // 1 px = 1 cm (for scale; arbitrary but consistent)
+    const chargeRadiusPx = 18;
+
+    const scene = document.getElementById('scene');
+    const plot = document.getElementById('plot');
+    const magnitudeSlider = document.getElementById('magnitude');
+    const magReadout = document.getElementById('magReadout');
+    const q1Readout = document.getElementById('q1Readout');
+    const q2Readout = document.getElementById('q2Readout');
+    const rReadout = document.getElementById('rReadout');
+    const uReadout = document.getElementById('uReadout');
+    const fReadout = document.getElementById('fReadout');
+    const signReadout = document.getElementById('signReadout');
+    const chargeMode = document.getElementById('chargeMode');
+
+    const sceneCtx = scene.getContext('2d');
+    const plotCtx = plot.getContext('2d');
+
+    // Layout
+    function resizeCanvasToDisplaySize(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const needResize = canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr);
+      if (needResize) {
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+      }
+      return dpr;
+    }
+
+    // State
+    const state = {
+      likeMode: true, // true => +/+, false => +/- (q1 positive)
+      magnitudeNanoC: 12,
+      q1: 12e-9, // C
+      q2: 12e-9, // C or −12e-9
+      draggingIndex: -1,
+      charges: [
+        { x: 0.3, y: 0.5 },
+        { x: 0.7, y: 0.5 },
+      ], // normalized positions [0..1]
+    };
+
+    function updateChargesFromControls() {
+      const mag = Number(magnitudeSlider.value);
+      state.magnitudeNanoC = mag;
+      state.q1 = mag * 1e-9;
+      state.q2 = (state.likeMode ? +1 : -1) * mag * 1e-9;
+      magReadout.textContent = mag + ' nC';
+      q1Readout.textContent = (state.q1 >= 0 ? '+' : '−') + Math.abs(state.magnitudeNanoC) + ' nC';
+      q2Readout.textContent = (state.q2 >= 0 ? '+' : '−') + Math.abs(state.magnitudeNanoC) + ' nC';
+    }
+
+    magnitudeSlider.addEventListener('input', () => { updateChargesFromControls(); drawAll(); });
+
+    chargeMode.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'BUTTON') return;
+      [...chargeMode.querySelectorAll('button')].forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      const mode = e.target.getAttribute('data-mode');
+      state.likeMode = mode === 'like';
+      updateChargesFromControls();
+      drawAll();
+    });
+
+    // Interaction on scene
+    function getSceneSize() {
+      const dpr = resizeCanvasToDisplaySize(scene);
+      return { width: scene.width, height: scene.height, dpr };
+    }
+
+    function getPlotSize() {
+      const dpr = resizeCanvasToDisplaySize(plot);
+      return { width: plot.width, height: plot.height, dpr };
+    }
+
+    function normToPx(p) {
+      const { width, height } = getSceneSize();
+      return { x: p.x * width, y: p.y * height };
+    }
+
+    function pxToNorm(p) {
+      const { width, height } = getSceneSize();
+      return { x: p.x / width, y: p.y / height };
+    }
+
+    function handlePointerDown(ev) {
+      const rect = scene.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const px = { x: (ev.clientX - rect.left) * dpr, y: (ev.clientY - rect.top) * dpr };
+      const r2 = chargeRadiusPx * dpr * chargeRadiusPx * dpr;
+      state.draggingIndex = -1;
+      state.charges.forEach((c, i) => {
+        const p = normToPx(c);
+        const dx = px.x - p.x; const dy = px.y - p.y;
+        if ((dx*dx + dy*dy) <= r2) state.draggingIndex = i;
+      });
+      if (state.draggingIndex >= 0) {
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp, { once: true });
+      }
+    }
+
+    function handlePointerMove(ev) {
+      const rect = scene.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const px = { x: (ev.clientX - rect.left) * dpr, y: (ev.clientY - rect.top) * dpr };
+      const n = pxToNorm(px);
+      const clamped = { x: Math.min(0.95, Math.max(0.05, n.x)), y: Math.min(0.9, Math.max(0.1, n.y)) };
+      if (state.draggingIndex >= 0) {
+        state.charges[state.draggingIndex] = clamped;
+        drawAll();
+      }
+    }
+
+    function handlePointerUp() {
+      state.draggingIndex = -1;
+      window.removeEventListener('pointermove', handlePointerMove);
+    }
+
+    scene.addEventListener('pointerdown', handlePointerDown);
+
+    // Physics helpers
+    function vectorSubtract(a, b) { return { x: a.x - b.x, y: a.y - b.y }; }
+    function vectorLength(v) { return Math.hypot(v.x, v.y); }
+    function vectorScale(v, s) { return { x: v.x * s, y: v.y * s }; }
+    function vectorNormalize(v) { const L = vectorLength(v) || 1; return { x: v.x / L, y: v.y / L }; }
+    function vectorAdd(a, b) { return { x: a.x + b.x, y: a.y + b.y }; }
+
+    function computeMetrics() {
+      const p1px = normToPx(state.charges[0]);
+      const p2px = normToPx(state.charges[1]);
+      const rVecPx = vectorSubtract(p2px, p1px);
+      const rPx = Math.max(4, vectorLength(rVecPx));
+      const rHat = vectorScale(rVecPx, 1 / rPx);
+
+      const rMeters = rPx * metersPerPixel;
+      const q1 = state.q1;
+      const q2 = state.q2;
+      const product = q1 * q2;
+      const U = kCoulomb * product / rMeters; // J
+      const Fmag = kCoulomb * Math.abs(product) / (rMeters * rMeters); // N
+
+      // Force on charge 2 due to charge 1: F2 = k q1 q2 r_hat / r^2
+      const F2hat = product >= 0 ? rHat : vectorScale(rHat, -1);
+
+      return { p1px, p2px, rPx, rMeters, rHat, q1, q2, product, U, Fmag, F2hat };
+    }
+
+    // Drawing
+    function drawGrid(ctx, w, h) {
+      ctx.save();
+      ctx.fillStyle = '#0b1127';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid');
+      ctx.lineWidth = 1;
+      const step = Math.round(Math.min(w, h) / 18);
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += step) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, h); }
+      for (let y = 0; y <= h; y += step) { ctx.moveTo(0, y + 0.5); ctx.lineTo(w, y + 0.5); }
+      ctx.stroke();
+
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--axis');
+      ctx.beginPath();
+      ctx.moveTo(0, h/2 + 0.5); ctx.lineTo(w, h/2 + 0.5);
+      ctx.moveTo(w/2 + 0.5, 0); ctx.lineTo(w/2 + 0.5, h);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCharge(ctx, center, sign) {
+      const color = sign >= 0 ? getComputedStyle(document.documentElement).getPropertyValue('--charge-pos') : getComputedStyle(document.documentElement).getPropertyValue('--charge-neg');
+      ctx.save();
+      ctx.shadowColor = color.trim();
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, chargeRadiusPx, 0, Math.PI * 2);
+      ctx.fillStyle = color.trim();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffffff22';
+      ctx.stroke();
+
+      // Sign glyph
+      ctx.fillStyle = '#0a0f22';
+      ctx.font = `${chargeRadiusPx + 2}px ui-sans-serif, system-ui, -apple-system`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(sign >= 0 ? '+' : '−', center.x, center.y + 1);
+      ctx.restore();
+    }
+
+    function drawArrow(ctx, from, to, options = {}) {
+      const { color = getComputedStyle(document.documentElement).getPropertyValue('--arrow').trim(), width = 3 } = options;
+      const headLength = 12;
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const angle = Math.atan2(dy, dx);
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(to.x, to.y);
+      ctx.lineTo(to.x - headLength * Math.cos(angle - Math.PI / 6), to.y - headLength * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(to.x - headLength * Math.cos(angle + Math.PI / 6), to.y - headLength * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawScene() {
+      const { width: w, height: h } = getSceneSize();
+      sceneCtx.clearRect(0, 0, w, h);
+      drawGrid(sceneCtx, w, h);
+
+      const m = computeMetrics();
+
+      // Draw line connecting charges
+      sceneCtx.save();
+      sceneCtx.strokeStyle = '#ffffff18';
+      sceneCtx.lineWidth = 2;
+      sceneCtx.setLineDash([6, 6]);
+      sceneCtx.beginPath();
+      sceneCtx.moveTo(m.p1px.x, m.p1px.y);
+      sceneCtx.lineTo(m.p2px.x, m.p2px.y);
+      sceneCtx.stroke();
+      sceneCtx.restore();
+
+      // Draw charges
+      drawCharge(sceneCtx, m.p1px, Math.sign(m.q1) || 1);
+      drawCharge(sceneCtx, m.p2px, Math.sign(m.q2) || 1);
+
+      // Draw forces as arrows on each charge (equal and opposite)
+      const arrowScale = Math.min(120, 0.35 * m.rPx); // pixel length cap
+      const arrowLength = Math.min(arrowScale, 12 + 0.8 * Math.log10(1 + m.Fmag * 1e7)); // compress dynamic range
+
+      // Force on charge 2
+      const from2 = m.p2px;
+      const to2 = vectorAdd(from2, vectorScale(m.F2hat, arrowLength));
+      drawArrow(sceneCtx, from2, to2, { color: '#ffd166', width: 3 });
+
+      // Force on charge 1 is opposite direction
+      const F1hat = { x: -m.F2hat.x, y: -m.F2hat.y };
+      const from1 = m.p1px;
+      const to1 = vectorAdd(from1, vectorScale(F1hat, arrowLength));
+      drawArrow(sceneCtx, from1, to1, { color: '#ffd166', width: 3 });
+
+      // Update readouts
+      const rMeters = m.rMeters;
+      const U = m.U;
+      const Fmag = m.Fmag;
+      rReadout.textContent = `${m.rPx.toFixed(0)} px  ≈  ${rMeters.toFixed(2)} m`;
+      const uClass = U >= 0 ? 'positive' : 'negative';
+      const fStr = `${formatNumber(Fmag)} N`;
+      uReadout.classList.toggle('positive', U >= 0);
+      uReadout.classList.toggle('negative', U < 0);
+      uReadout.textContent = `${formatNumber(U)} J`;
+      fReadout.textContent = fStr;
+      signReadout.textContent = `${m.product >= 0 ? '+ (repel)' : '− (attract)'}`;
+    }
+
+    function drawPlot() {
+      const { width: w, height: h } = getPlotSize();
+      plotCtx.clearRect(0, 0, w, h);
+
+      // Background
+      plotCtx.save();
+      plotCtx.fillStyle = '#0b1127';
+      plotCtx.fillRect(0, 0, w, h);
+
+      // Axes
+      const padL = 42, padR = 16, padT = 16, padB = 28;
+      const innerW = w - padL - padR;
+      const innerH = h - padT - padB;
+      plotCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--axis');
+      plotCtx.lineWidth = 1.2;
+      plotCtx.beginPath();
+      plotCtx.moveTo(padL, h - padB + 0.5);
+      plotCtx.lineTo(w - padR, h - padB + 0.5);
+      plotCtx.moveTo(padL + 0.5, padT);
+      plotCtx.lineTo(padL + 0.5, h - padB);
+      plotCtx.stroke();
+
+      // Grid
+      plotCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid');
+      plotCtx.lineWidth = 1;
+      plotCtx.beginPath();
+      const xTicks = 6, yTicks = 4;
+      for (let i = 1; i < xTicks; i++) {
+        const x = padL + (i / xTicks) * innerW + 0.5;
+        plotCtx.moveTo(x, padT);
+        plotCtx.lineTo(x, h - padB);
+      }
+      for (let j = 1; j < yTicks; j++) {
+        const y = padT + (j / yTicks) * innerH + 0.5;
+        plotCtx.moveTo(padL, y);
+        plotCtx.lineTo(w - padR, y);
+      }
+      plotCtx.stroke();
+
+      // Compute curve U(r) for current sign and magnitude, scaled to fit
+      const m = computeMetrics();
+      const qAbs = Math.abs(state.q1 * state.q2);
+      const sign = Math.sign(state.q1 * state.q2) || 1;
+      const rMinPx = 24;
+      const rMaxPx = Math.min(innerW * 0.95, Math.max(innerW * 0.6, 340));
+
+      // Pre-sample to determine dynamic range
+      const samples = 120;
+      let Umin = +Infinity, Umax = -Infinity;
+      const Us = new Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const rPx = rMinPx + (i / (samples - 1)) * (rMaxPx - rMinPx);
+        const rM = rPx * metersPerPixel;
+        const U = sign * (kCoulomb * qAbs / rM);
+        Us[i] = U;
+        if (U < Umin) Umin = U;
+        if (U > Umax) Umax = U;
+      }
+
+      // Symmetric padding around 0 for nicer visualization
+      const maxAbs = Math.max(Math.abs(Umin), Math.abs(Umax));
+      const yMin = -maxAbs;
+      const yMax = +maxAbs;
+
+      function xForR(rPx) { return padL + ((rPx - rMinPx) / (rMaxPx - rMinPx)) * innerW; }
+      function yForU(U) { return padT + ((yMax - U) / (yMax - yMin)) * innerH; }
+
+      // Draw curve
+      plotCtx.save();
+      plotCtx.strokeStyle = sign >= 0 ? getComputedStyle(document.documentElement).getPropertyValue('--bad').trim() : getComputedStyle(document.documentElement).getPropertyValue('--good').trim();
+      plotCtx.lineWidth = 2;
+      plotCtx.beginPath();
+      for (let i = 0; i < samples; i++) {
+        const rPx = rMinPx + (i / (samples - 1)) * (rMaxPx - rMinPx);
+        const U = Us[i];
+        const x = xForR(rPx), y = yForU(U);
+        if (i === 0) plotCtx.moveTo(x, y); else plotCtx.lineTo(x, y);
+      }
+      plotCtx.stroke();
+
+      // Zero line
+      plotCtx.strokeStyle = '#ffffff20';
+      plotCtx.setLineDash([6, 6]);
+      plotCtx.beginPath();
+      const y0 = yForU(0);
+      plotCtx.moveTo(padL, y0);
+      plotCtx.lineTo(w - padR, y0);
+      plotCtx.stroke();
+      plotCtx.setLineDash([]);
+
+      // Marker at current r
+      const rPxCurrent = m.rPx;
+      const Ucurrent = kCoulomb * (state.q1 * state.q2) / (m.rMeters);
+      const xMarker = xForR(Math.min(rMaxPx, Math.max(rMinPx, rPxCurrent)));
+      const yMarker = yForU(Math.max(yMin, Math.min(yMax, Ucurrent)));
+      plotCtx.fillStyle = '#e6eefc';
+      plotCtx.strokeStyle = '#e6eefc';
+      plotCtx.lineWidth = 2;
+      plotCtx.beginPath();
+      plotCtx.arc(xMarker, yMarker, 4, 0, Math.PI * 2);
+      plotCtx.fill();
+
+      // Axis labels
+      plotCtx.fillStyle = '#a7b4d6';
+      plotCtx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial';
+      plotCtx.textAlign = 'center';
+      plotCtx.fillText('Separation r (px)', padL + innerW / 2, h - 8);
+      plotCtx.save();
+      plotCtx.translate(12, padT + innerH / 2);
+      plotCtx.rotate(-Math.PI / 2);
+      plotCtx.fillText('Potential energy U (arbitrary scale)', 0, 0);
+      plotCtx.restore();
+
+      plotCtx.restore();
+    }
+
+    function formatNumber(x) {
+      const ax = Math.abs(x);
+      if (ax === 0) return '0';
+      if (ax >= 1e3 || ax < 1e-2) {
+        const exp = x.toExponential(2);
+        return exp.replace('e+', '×10^').replace('e-', '×10^-');
+      }
+      return x.toFixed(3);
+    }
+
+    function drawAll() {
+      drawScene();
+      drawPlot();
+    }
+
+    window.addEventListener('resize', () => drawAll());
+
+    // Init
+    updateChargesFromControls();
+    drawAll();
+  </script>
+</body>
+</html>
